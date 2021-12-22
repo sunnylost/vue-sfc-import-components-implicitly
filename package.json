@@ -1,0 +1,21 @@
+{
+    "name": "vue-sfc-import-components-implicitly",
+    "version": "1.0.0",
+    "description": "",
+    "type": "module",
+    "main": "src/index.mjs",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "acorn": "^8.6.0",
+        "acorn-walk": "^8.2.0",
+        "chalk": "^5.0.0",
+        "glob": "^7.2.0",
+        "pug": "^3.0.2",
+        "vue-template-compiler": "^2.6.14"
+    }
+}
