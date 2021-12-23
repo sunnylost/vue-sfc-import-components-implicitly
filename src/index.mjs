@@ -1,4 +1,5 @@
 import fs from 'fs'
+import path from 'path'
 import chalk from 'chalk'
 import glob from 'glob'
 import vueCompiler from 'vue-template-compiler'
@@ -7,22 +8,24 @@ import * as walk from 'acorn-walk'
 import pug from 'pug'
 import validTags from './validTags.mjs'
 
-function normalizeComponentName(name) {
-    return name.replace(/-/g, '').toLowerCase()
+function transformComponentNameToDashStyle(name) {
+    return name.replace(/[A-Z]/g, (match, index) => {
+        return `${index === 0 ? '' : '-'}${match.toLowerCase()}`
+    })
 }
 
-function compileSFC(fileContent) {
+function compileSFC(fileContent, filePath) {
     const { template, script } = vueCompiler.parseComponent(fileContent)
 
-    const explicitImportedComponents = collectExplicitImportComponents(script.content)
+    const explicitImportedComponents = collectExplicitImportComponents(script.content, filePath)
     const allComponents = collectAllComponentsInvokedFromTemplate(template)
     const implicitImportedComponents = []
 
     allComponents.forEach(rawComponentName => {
-        const componentName = normalizeComponentName(rawComponentName)
+        const componentName = transformComponentNameToDashStyle(rawComponentName)
 
         if (!explicitImportedComponents.includes(componentName)) {
-            implicitImportedComponents.push(rawComponentName)
+            implicitImportedComponents.push(componentName)
         }
     })
 
@@ -57,11 +60,12 @@ function collectAllComponentsInvokedFromTemplate(template) {
     }
 
     innerTagCollector(ast)
-    return Object.keys(customTagsMap)
+    return Object.keys(customTagsMap).map(name => transformComponentNameToDashStyle(name))
 }
 
-function collectExplicitImportComponents(scriptContent) {
+function collectExplicitImportComponents(scriptContent, filePath) {
     let components = []
+    let currentComponentName
 
     walk.simple(
         acorn.parse(scriptContent, {
@@ -71,9 +75,15 @@ function collectExplicitImportComponents(scriptContent) {
         {
             ExportDefaultDeclaration(node) {
                 node.declaration.properties.some(property => {
+                    if (property?.key?.name === 'name') {
+                        currentComponentName = transformComponentNameToDashStyle(
+                            property.value.value
+                        )
+                    }
+
                     if (property?.key?.name === 'components') {
                         components = property.value?.properties?.map(item =>
-                            normalizeComponentName(item.key.name)
+                            transformComponentNameToDashStyle(item.key.name)
                         )
                         return true
                     }
@@ -81,6 +91,19 @@ function collectExplicitImportComponents(scriptContent) {
             }
         }
     )
+
+    if (!currentComponentName) {
+        currentComponentName = transformComponentNameToDashStyle(
+            filePath
+                .split(path.sep)
+                .pop()
+                .replace(/\.vue$/, '')
+        )
+    }
+
+    if (!components.includes(currentComponentName)) {
+        components.push(currentComponentName)
+    }
 
     return components
 }
@@ -95,7 +118,7 @@ export function parseSingleFile(filePath, { filter }) {
             if (err) {
                 console.error(err)
             } else {
-                let { implicitImportedComponents } = compileSFC(content)
+                let { implicitImportedComponents } = compileSFC(content, filePath)
 
                 if (typeof filter === 'function') {
                     implicitImportedComponents = implicitImportedComponents.filter(item =>
