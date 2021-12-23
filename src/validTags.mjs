@@ -164,6 +164,15 @@ const HTMLTags = [
     'tt',
     'xmp'
 ]
-const VueTags = ['keep-alive', 'router-link', 'slot', 'template', 'transition', 'transition-group']
+const VueTags = [
+    'i18n',
+    'keep-alive',
+    'router-link',
+    'slot',
+    'teleport',
+    'template',
+    'transition',
+    'transition-group'
+]
 
 export default [...HTMLTags, ...VueTags]
