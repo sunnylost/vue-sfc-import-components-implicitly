@@ -70,7 +70,20 @@ function collectExplicitImportComponents(scriptContent, filePath) {
         }),
         {
             ExportDefaultDeclaration(node) {
-                node.declaration.properties.some(property => {
+                let properties
+                /**
+                 * composition-api
+                 */
+                if (
+                    node.declaration.type === 'CallExpression' &&
+                    node.declaration.callee.name === 'defineComponents'
+                ) {
+                    properties = node.declaration.arguments[0].properties
+                } else {
+                    properties = node.declaration.properties
+                }
+
+                properties?.forEach(property => {
                     if (property?.key?.name === 'name') {
                         currentComponentName = transformComponentNameToDashStyle(
                             property.value.value
@@ -81,7 +94,6 @@ function collectExplicitImportComponents(scriptContent, filePath) {
                         components = property.value?.properties?.map(item =>
                             transformComponentNameToDashStyle(item.key.name)
                         )
-                        return true
                     }
                 })
             }
