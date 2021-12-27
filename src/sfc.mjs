@@ -76,7 +76,7 @@ function collectExplicitImportComponents(scriptContent, filePath) {
                  */
                 if (
                     node.declaration.type === 'CallExpression' &&
-                    node.declaration.callee.name === 'defineComponents'
+                    node.declaration.callee.name === 'defineComponent'
                 ) {
                     properties = node.declaration.arguments[0].properties
                 } else {

@@ -168,6 +168,7 @@ const VueTags = [
     'i18n',
     'keep-alive',
     'router-link',
+    'router-view',
     'slot',
     'teleport',
     'template',
