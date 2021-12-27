@@ -11,9 +11,18 @@ function transformComponentNameToDashStyle(name) {
     })
 }
 
+function getComponentNameFromPath(filePath) {
+    return transformComponentNameToDashStyle(
+        filePath
+            .split(path.sep)
+            .pop()
+            .replace(/\.vue$/, '')
+    )
+}
+
 export default function compile(fileContent, filePath) {
     const { template, script } = vueCompiler.parseComponent(fileContent)
-    const explicitImportedComponents = collectExplicitImportComponents(script.content, filePath)
+    const explicitImportedComponents = collectExplicitImportComponents(script, filePath)
     const allComponents = collectAllComponentsInvokedFromTemplate(template)
     const implicitImportedComponents = []
 
@@ -33,6 +42,10 @@ export default function compile(fileContent, filePath) {
 }
 
 function collectAllComponentsInvokedFromTemplate(template) {
+    if (!template) {
+        return []
+    }
+
     const { content, lang } = template
     const html = lang === 'pug' ? pug.compile(content)() : content
     const { ast } = vueCompiler.compile(html, {
@@ -55,11 +68,20 @@ function collectAllComponentsInvokedFromTemplate(template) {
         }
     }
 
+    if (!ast) {
+        return []
+    }
+
     innerTagCollector(ast)
     return Object.keys(customTagsMap).map(name => transformComponentNameToDashStyle(name))
 }
 
-function collectExplicitImportComponents(scriptContent, filePath) {
+function collectExplicitImportComponents(script, filePath) {
+    if (!script) {
+        return [getComponentNameFromPath(filePath)]
+    }
+
+    const { content: scriptContent } = script
     let components = []
     let currentComponentName
 
@@ -101,12 +123,7 @@ function collectExplicitImportComponents(scriptContent, filePath) {
     )
 
     if (!currentComponentName) {
-        currentComponentName = transformComponentNameToDashStyle(
-            filePath
-                .split(path.sep)
-                .pop()
-                .replace(/\.vue$/, '')
-        )
+        currentComponentName = getComponentNameFromPath(filePath)
     }
 
     if (!components.includes(currentComponentName)) {
